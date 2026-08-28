@@ -627,6 +627,680 @@ if (window.tamilAIExtensionLoaded) {
     // Initialize Tamil Spell Check System
     const tamilSpellCheckSystem = new TamilSpellCheckSystem();
 
+    // Tamil AI Chat Panel System
+    class TamilAIChatPanel {
+        constructor() {
+            this.panel = null;
+            this.isOpen = false;
+            this.apiEndpoint = 'http://localhost:8000/process-text';
+            this.init();
+        }
+
+        init() {
+            this.createChatPanel();
+            this.injectChatStyles();
+            console.log('Tamil AI Chat Panel initialized');
+        }
+
+        createChatPanel() {
+            // Remove existing panel if any
+            const existingPanel = document.getElementById('tamil-ai-chat-panel');
+            if (existingPanel) {
+                existingPanel.remove();
+            }
+
+            this.panel = document.createElement('div');
+            this.panel.id = 'tamil-ai-chat-panel';
+            this.panel.className = 'tamil-ai-chat-panel';
+            this.panel.innerHTML = `
+                <div class="chat-header">
+                    <div class="chat-title">
+                        <div class="ai-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" fill="currentColor"/>
+                                <path d="M19 15L19.62 18.26L23 19L19.62 19.74L19 23L18.38 19.74L15 19L18.38 18.26L19 15Z" fill="currentColor"/>
+                                <path d="M5 15L5.62 18.26L9 19L5.62 19.74L5 23L4.38 19.74L1 19L4.38 18.26L5 15Z" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <span>Tamil AI</span>
+                    </div>
+                    <div class="header-actions">
+                        <div class="ai-status">
+                            <div class="ai-active-icon">
+                                <div class="pulse-dot"></div>
+                            </div>
+                        </div>
+                        <button class="close-btn" title="Close">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="chat-content">
+                    <div class="welcome-message">
+                        <p>Hi! I'm your Tamil AI assistant. Select Tamil text and right-click to check grammar!</p>
+                    </div>
+                    <div class="chat-messages" id="chat-messages"></div>
+                </div>
+            `;
+
+            document.body.appendChild(this.panel);
+            this.setupEventListeners();
+        }
+
+        setupEventListeners() {
+            // Close button
+            this.panel.querySelector('.close-btn').addEventListener('click', () => {
+                this.closePanel();
+            });
+
+
+            // Close on outside click
+            document.addEventListener('click', (e) => {
+                if (this.isOpen && !this.panel.contains(e.target) && !e.target.closest('[data-tamil-ai-trigger]')) {
+                    this.closePanel();
+                }
+            });
+        }
+
+
+        async checkGrammar(selectedText) {
+            this.openPanel();
+            
+            // Add user message showing selected text
+            this.addMessage(`Grammar check for: "${selectedText}"`, 'user');
+
+            // Show typing indicator
+            const typingId = this.addTypingIndicator();
+
+            try {
+                const response = await fetch(this.apiEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: selectedText,
+                        operation: 'live_grammar'
+                    })
+                });
+
+                this.removeTypingIndicator(typingId);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.corrected_text && data.corrected_text.trim() !== selectedText.trim()) {
+                        // Show grammar suggestions
+                        this.addGrammarSuggestion(selectedText, data.corrected_text, data.suggestions || []);
+                    } else {
+                        this.addMessage('No errors - தவரு இல்லை', 'assistant');
+                    }
+                } else {
+                    this.addMessage('Sorry, I couldn\'t check the grammar. Please try again.', 'assistant');
+                }
+            } catch (error) {
+                this.removeTypingIndicator(typingId);
+                this.addMessage('Sorry, I encountered an error while checking grammar.', 'assistant');
+                console.error('Grammar check error:', error);
+            }
+        }
+
+        async summarizeText(selectedText) {
+            this.openPanel();
+            
+            // Add user message showing selected text (truncated if too long)
+            const displayText = selectedText.length > 100 ? selectedText.substring(0, 100) + '...' : selectedText;
+            this.addMessage(`Summarize: "${displayText}"`, 'user');
+
+            // Show typing indicator
+            const typingId = this.addTypingIndicator();
+
+            try {
+                const response = await fetch(this.apiEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: selectedText,
+                        operation: 'summarize'
+                    })
+                });
+
+                this.removeTypingIndicator(typingId);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.corrected_text) {
+                        // Display the summary in a clean format
+                        this.addSummary(data.corrected_text);
+                    } else {
+                        this.addMessage('Sorry, I couldn\'t summarize the text. Please try again.', 'assistant');
+                    }
+                } else {
+                    this.addMessage('Sorry, I couldn\'t summarize the text. Please try again.', 'assistant');
+                }
+            } catch (error) {
+                this.removeTypingIndicator(typingId);
+                this.addMessage('Sorry, I encountered an error while summarizing the text.', 'assistant');
+                console.error('Summarization error:', error);
+            }
+        }
+
+        addMessage(content, sender) {
+            const messagesContainer = this.panel.querySelector('#chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-text">${content}</div>
+                    <div class="message-time">${timestamp}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        addSummary(summaryText) {
+            const messagesContainer = this.panel.querySelector('#chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant-message';
+            
+            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="summary-card">
+                        <div class="summary-header">
+                            <div class="summary-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM18 20H6V4H13V9H18V20Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <span>Summary</span>
+                        </div>
+                        <div class="summary-content">
+                            ${summaryText}
+                        </div>
+                    </div>
+                    <div class="message-time">${timestamp}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        addGrammarSuggestion(original, corrected, suggestions) {
+            const messagesContainer = this.panel.querySelector('#chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant-message';
+            
+            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="grammar-suggestion">
+                        <div class="suggestion-header">
+                            <div class="suggestion-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM18 20H6V4H13V9H18V20Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <span>Grammar Suggestions</span>
+                        </div>
+                        <div class="original-text">
+                            <strong>Original:</strong> ${original}
+                        </div>
+                        <div class="corrected-text">
+                            <strong>Suggested:</strong> ${corrected}
+                        </div>
+                        <div class="suggestion-actions">
+                            <button class="copy-suggestion-btn" data-text="${corrected}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z" fill="currentColor"/>
+                                </svg>
+                                <span>Copy</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="message-time">${timestamp}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // Add event listener for copy button
+            const copyBtn = messageDiv.querySelector('.copy-suggestion-btn');
+
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(copyBtn.dataset.text);
+            });
+        }
+
+        addTypingIndicator() {
+            const messagesContainer = this.panel.querySelector('#chat-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message assistant-message typing-indicator';
+            typingDiv.id = 'typing-indicator';
+            
+            typingDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(typingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            return 'typing-indicator';
+        }
+
+        removeTypingIndicator(typingId) {
+            const typingElement = document.getElementById(typingId);
+            if (typingElement) {
+                typingElement.remove();
+            }
+        }
+
+        applyGrammarCorrection(original, corrected) {
+            try {
+                // Try to apply to active input/textarea
+                const activeElement = document.activeElement;
+                if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+                    const currentText = activeElement.value;
+                    if (currentText && currentText.includes(original)) {
+                        const newText = currentText.replace(original, corrected);
+                        activeElement.value = newText;
+                        activeElement.dispatchEvent(new Event('input', { bubbles: true }));
+                        activeElement.dispatchEvent(new Event('change', { bubbles: true }));
+                        this.addMessage('Applied grammar correction!', 'assistant');
+                        return;
+                    }
+                }
+                
+                // Fallback to clipboard
+                navigator.clipboard.writeText(corrected).then(() => {
+                    this.addMessage('Copied corrected text to clipboard!', 'assistant');
+                }).catch(() => {
+                    this.addMessage('Could not apply correction', 'assistant');
+                });
+                
+            } catch (error) {
+                console.error('Error applying grammar correction:', error);
+                this.addMessage('Error applying correction', 'assistant');
+            }
+        }
+
+        openPanel() {
+            this.panel.classList.add('open');
+            this.isOpen = true;
+        }
+
+        closePanel() {
+            this.panel.classList.remove('open');
+            this.isOpen = false;
+        }
+
+        togglePanel() {
+            if (this.isOpen) {
+                this.closePanel();
+            } else {
+                this.openPanel();
+            }
+        }
+
+        injectChatStyles() {
+            // Remove existing styles first
+            const existingStyle = document.getElementById('tamil-ai-chat-styles');
+            if (existingStyle) {
+                existingStyle.remove();
+            }
+
+            const style = document.createElement('style');
+            style.id = 'tamil-ai-chat-styles';
+            style.textContent = `
+                .tamil-ai-chat-panel {
+                    position: fixed;
+                    top: 0;
+                    right: -400px;
+                    width: 400px;
+                    height: 100vh;
+                    background: #1a1a1a;
+                    border-left: 1px solid #333;
+                    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+                    z-index: 999999;
+                    display: flex;
+                    flex-direction: column;
+                    transition: right 0.3s ease-in-out;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+
+                .tamil-ai-chat-panel.open {
+                    right: 0;
+                }
+
+                .chat-header {
+                    background: #1a1a1a;
+                    color: #ffffff;
+                    padding: 16px 20px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-bottom: 1px solid #333;
+                }
+
+                .chat-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-weight: 600;
+                    font-size: 16px;
+                }
+
+                .ai-icon {
+                    display: flex;
+                    align-items: center;
+                    color: #4285f4;
+                }
+
+                .header-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+
+                .ai-status {
+                    display: flex;
+                    align-items: center;
+                }
+
+                .ai-active-icon {
+                    position: relative;
+                    width: 12px;
+                    height: 12px;
+                }
+
+                .pulse-dot {
+                    width: 8px;
+                    height: 8px;
+                    background: #4ade80;
+                    border-radius: 50%;
+                    animation: pulse 2s infinite;
+                }
+
+                @keyframes pulse {
+                    0% {
+                        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+                    }
+                    70% {
+                        box-shadow: 0 0 0 6px rgba(74, 222, 128, 0);
+                    }
+                    100% {
+                        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+                    }
+                }
+
+                .close-btn {
+                    background: #2d2d2d;
+                    border: none;
+                    color: #ffffff;
+                    padding: 6px;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 500;
+                    transition: background 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .close-btn:hover {
+                    background: #404040;
+                }
+
+                .chat-content {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 20px;
+                    background: #1a1a1a;
+                }
+
+                .welcome-message {
+                    text-align: center;
+                    padding: 20px;
+                    background: #2d2d2d;
+                    border-radius: 12px;
+                    margin-bottom: 20px;
+                    border: 1px solid #404040;
+                }
+
+                .welcome-message p {
+                    margin: 0;
+                    color: #e0e0e0;
+                    line-height: 1.5;
+                    font-size: 14px;
+                }
+
+                .chat-messages {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                }
+
+                .message {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .user-message {
+                    align-items: flex-end;
+                }
+
+                .assistant-message {
+                    align-items: flex-start;
+                }
+
+                .message-content {
+                    max-width: 85%;
+                    padding: 12px 16px;
+                    border-radius: 18px;
+                    position: relative;
+                }
+
+                .user-message .message-content {
+                    background: #4285f4;
+                    color: white;
+                    border-bottom-right-radius: 6px;
+                }
+
+                .assistant-message .message-content {
+                    background: #2d2d2d;
+                    color: #e0e0e0;
+                    border: 1px solid #404040;
+                    border-bottom-left-radius: 6px;
+                }
+
+                .message-text {
+                    line-height: 1.5;
+                    word-wrap: break-word;
+                    font-size: 14px;
+                }
+
+                .message-time {
+                    font-size: 11px;
+                    color: #888;
+                    margin-top: 4px;
+                    text-align: right;
+                }
+
+                .assistant-message .message-time {
+                    text-align: left;
+                }
+
+                .grammar-suggestion {
+                    background: #2d2d2d;
+                    border: 1px solid #404040;
+                    border-radius: 12px;
+                    padding: 16px;
+                    margin: 8px 0;
+                }
+
+                .suggestion-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 12px;
+                    font-weight: 600;
+                    color: #e0e0e0;
+                }
+
+                .suggestion-icon {
+                    display: flex;
+                    align-items: center;
+                    color: #4285f4;
+                }
+
+                .original-text, .corrected-text {
+                    margin-bottom: 8px;
+                    padding: 12px;
+                    background: #1a1a1a;
+                    border-radius: 8px;
+                    font-family: 'Tamil', 'Noto Sans Tamil', sans-serif;
+                    border: 1px solid #333;
+                    font-size: 14px;
+                }
+
+                .original-text {
+                    border-left: 4px solid #ff6b6b;
+                    color: #e0e0e0;
+                }
+
+                .corrected-text {
+                    border-left: 4px solid #4ade80;
+                    color: #e0e0e0;
+                }
+
+                .suggestion-actions {
+                    display: flex;
+                    justify-content: flex-start;
+                    margin-top: 12px;
+                }
+
+                .copy-suggestion-btn {
+                    background: #2d2d2d;
+                    color: #ffffff;
+                    border: 1px solid #404040;
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: all 0.2s;
+                    font-size: 13px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    min-width: 80px;
+                }
+
+                .copy-suggestion-btn:hover {
+                    background: #404040;
+                    border-color: #555;
+                    transform: translateY(-1px);
+                }
+
+                .copy-suggestion-btn svg {
+                    color: #ffffff;
+                }
+
+                .summary-card {
+                    background: #2d2d2d;
+                    border: 1px solid #404040;
+                    border-radius: 12px;
+                    padding: 16px;
+                    margin: 8px 0;
+                }
+
+                .summary-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 12px;
+                    font-weight: 600;
+                    color: #e0e0e0;
+                }
+
+                .summary-icon {
+                    display: flex;
+                    align-items: center;
+                    color: #4285f4;
+                }
+
+                .summary-content {
+                    color: #e0e0e0;
+                    line-height: 1.6;
+                    font-size: 14px;
+                    font-family: 'Tamil', 'Noto Sans Tamil', sans-serif;
+                }
+
+                .typing-indicator {
+                    opacity: 0.7;
+                }
+
+                .typing-dots {
+                    display: flex;
+                    gap: 4px;
+                    align-items: center;
+                }
+
+                .typing-dots span {
+                    width: 6px;
+                    height: 6px;
+                    background: #888;
+                    border-radius: 50%;
+                    animation: typing 1.4s infinite ease-in-out;
+                }
+
+                .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+                .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+                @keyframes typing {
+                    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+                    40% { transform: scale(1); opacity: 1; }
+                }
+
+
+                /* Mobile responsiveness */
+                @media (max-width: 768px) {
+                    .tamil-ai-chat-panel {
+                        width: 100vw;
+                        right: -100vw;
+                    }
+                }
+            `;
+            
+            document.head.appendChild(style);
+        }
+    }
+
+    // Initialize Tamil AI Chat Panel
+    const tamilAIChatPanel = new TamilAIChatPanel();
+
     // Context menu functionality (keeping existing)
     let currentSelectionRange = null;
     let currentlySelectedElement = null;
@@ -795,13 +1469,27 @@ if (window.tamilAIExtensionLoaded) {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         try {
             if (request.action === 'showResult') {
-                showResultPopup(request.originalText, request.correctedText, request.function);
+                // For grammar check and summarize, use chat panel
+                if (request.function === 'grammar-check') {
+                    tamilAIChatPanel.checkGrammar(request.originalText);
+                } else if (request.function === 'summarize') {
+                    tamilAIChatPanel.summarizeText(request.originalText);
+                } else {
+                    // For spell check, keep using popup
+                    showResultPopup(request.originalText, request.correctedText, request.function);
+                }
                 sendResponse({ success: true });
             } else if (request.action === 'toggleSpellCheck') {
                 tamilSpellCheckSystem.setEnabled(request.enabled);
                 sendResponse({ success: true, enabled: tamilSpellCheckSystem.enabled });
             } else if (request.action === 'getSpellCheckStatus') {
                 sendResponse({ success: true, enabled: tamilSpellCheckSystem.enabled });
+            } else if (request.action === 'openChatPanel') {
+                tamilAIChatPanel.openPanel();
+                sendResponse({ success: true });
+            } else if (request.action === 'closeChatPanel') {
+                tamilAIChatPanel.closePanel();
+                sendResponse({ success: true });
             }
         } catch (error) {
             console.log('Extension context invalidated - this is normal during development');

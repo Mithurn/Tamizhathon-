@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tamil Grammar Check Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-family: 'Tamil', 'Noto Sans Tamil', sans-serif;
+            font-size: 16px;
+            resize: vertical;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-family: 'Tamil', 'Noto Sans Tamil', sans-serif;
+            font-size: 16px;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .instructions h4 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>தமிழ் Grammar Check Test Page</h1>
+    <p>This page is designed to test the Tamil AI Grammar Check feature.</p>
+    
+    <div class="instructions">
+        <h4>How to test Grammar Check:</h4>
+        <ol>
+            <li>Make sure the Tamil AI extension is loaded and the backend server is running</li>
+            <li>Type or paste Tamil text with potential grammar errors in the fields below</li>
+            <li>Select the text you want to check</li>
+            <li>Right-click and choose "Tamil AI Assistant" → "Grammar Check"</li>
+            <li>The right-side chat panel should open with grammar suggestions</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Text Area</h3>
+        <p>Try typing Tamil text with grammar errors here:</p>
+        <textarea placeholder="Type Tamil text here... For example: நான் பள்ளிக்கூடம் போறேன்"></textarea>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Input Field</h3>
+        <p>Or test in a single-line input:</p>
+        <input type="text" placeholder="Type Tamil text here...">
+    </div>
+
+    <div class="test-section">
+        <h3>Sample Tamil Text with Grammar Issues</h3>
+        <p>Here are some examples you can copy and test:</p>
+        <ul>
+            <li><strong>நான் பள்ளிக்கூடம் போறேன்</strong> (should be: நான் பள்ளிக்கூடத்திற்கு போகிறேன்)</li>
+            <li><strong>அவன் வீட்டுக்கு வர்றேன்</strong> (should be: அவன் வீட்டுக்கு வருகிறேன்)</li>
+            <li><strong>நான் படிக்க்றேன்</strong> (should be: நான் படிக்கிறேன்)</li>
+            <li><strong>அவள் எழுத்றேன்</strong> (should be: அவள் எழுதுகிறாள்)</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h3>Instructions for Testing</h3>
+        <ol>
+            <li>Copy any of the sample text above</li>
+            <li>Paste it into one of the text fields</li>
+            <li>Select the text</li>
+            <li>Right-click and select "Tamil AI Assistant" → "Grammar Check"</li>
+            <li>Check if the chat panel opens on the right side</li>
+            <li>Verify that grammar suggestions are displayed</li>
+            <li>Test the "Apply Suggestion" and "Copy" buttons</li>
+        </ol>
+    </div>
+
+    <script>
+        // Add some sample text to make testing easier
+        document.addEventListener('DOMContentLoaded', function() {
+            const textarea = document.querySelector('textarea');
+            const input = document.querySelector('input[type="text"]');
+            
+            // Add sample text
+            textarea.value = 'நான் பள்ளிக்கூடம் போறேன். அவன் வீட்டுக்கு வர்றேன்.';
+            input.value = 'நான் படிக்க்றேன்';
+        });
+    </script>
+</body>
+</html>
+

@@ -46,15 +46,7 @@ function createContextMenus() {
             console.log('Created grammar check menu');
         });
 
-        // Create submenu - Spell Check
-        chrome.contextMenus.create({
-            id: 'spell-check',
-            parentId: 'tamil-ai-main',
-            title: 'Spell Check',
-            contexts: ['selection']
-        }, () => {
-            console.log('Created spell check menu');
-        });
+
     });
 }
 
@@ -73,8 +65,7 @@ async function processTextWithFunction(text, functionId, tabId) {
     console.log('Processing text:', text, 'with function:', functionId);
     
     const operations = {
-        'grammar-check': 'live_grammar',
-        'spell-check': 'spell_check'
+        'grammar-check': 'live_grammar'
     };
 
     const operation = operations[functionId];

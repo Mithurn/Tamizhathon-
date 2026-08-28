@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Tamil AI Writing Assistant",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "description": "Live Tamil grammar correction for web pages - like Gemini but for Tamil!",
     "permissions": [
       "activeTab",

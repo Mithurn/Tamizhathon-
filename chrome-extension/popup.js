@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const spellCheckStatus = document.getElementById('spellCheckStatus');
     const spellCheckStatusText = document.getElementById('spellCheckStatusText');
     const testButton = document.getElementById('testButton');
+    const openChatButton = document.getElementById('openChatButton');
     
     // Load current settings
     loadSettings();
@@ -12,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up event listeners
     spellCheckToggle.addEventListener('click', toggleSpellCheck);
     testButton.addEventListener('click', testSpellCheck);
+    openChatButton.addEventListener('click', openChatPanel);
     
     async function loadSettings() {
         try {
@@ -59,6 +61,37 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    async function openChatPanel() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab) {
+                chrome.tabs.sendMessage(tab.id, {
+                    action: 'openChatPanel'
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.log('Could not open chat panel:', chrome.runtime.lastError);
+                        openChatButton.textContent = '❌ Error Opening Chat';
+                        openChatButton.style.background = '#ef4444';
+                        setTimeout(() => {
+                            openChatButton.textContent = 'Open Tamil AI Chat';
+                            openChatButton.style.background = '#3b82f6';
+                        }, 2000);
+                    } else {
+                        console.log('Chat panel opened:', response);
+                        openChatButton.textContent = '✅ Chat Opened';
+                        openChatButton.style.background = '#10b981';
+                        setTimeout(() => {
+                            openChatButton.textContent = 'Open Tamil AI Chat';
+                            openChatButton.style.background = '#3b82f6';
+                        }, 2000);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error opening chat panel:', error);
+        }
+    }
+
     async function testSpellCheck() {
         testButton.disabled = true;
         testButton.textContent = 'Testing...';

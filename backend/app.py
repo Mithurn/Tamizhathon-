@@ -54,7 +54,21 @@ CORRECTION_PROMPTS = {
     4. If the word is already correct, return the original word unchanged
     5. Focus on common spelling mistakes in Tamil
     
-    Word to check:"""
+    Word to check:""",
+    
+    "summarize": """You are an expert text summarizer. Summarize the following text in a clear, concise manner.
+    
+    Rules:
+    1. Create a comprehensive summary that captures the main points
+    2. Maintain the original meaning and context
+    3. If the text is in Tamil, respond in Tamil
+    4. If the text is in English, respond in English
+    5. If the text is mixed (Tamil + English), respond in the predominant language
+    6. Keep the summary concise but informative
+    7. Focus on key information and main ideas
+    8. Use proper grammar and clear language
+    
+    Text to summarize:"""
 }
 
 # Simple fallback spell check dictionary for common Tamil words
